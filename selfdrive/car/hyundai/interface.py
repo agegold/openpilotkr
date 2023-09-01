@@ -257,7 +257,7 @@ class CarInterface(CarInterfaceBase):
     elif candidate in (CAR.KIA_K8, CAR.KIA_K8_HYBRID):
       ret.wheelbase = 2.89
       ret.steerRatio = 13.5  # average of the platforms
-      if candidate == CAR.CAR.KIA_K8_HYBRID:
+      if candidate == CAR.KIA_K8_HYBRID:
         ret.mass = 1630 + STD_CARGO_KG
       else:
         ret.mass = 1540 + STD_CARGO_KG
