@@ -171,19 +171,19 @@ class CarInterface(CarInterfaceBase):
       ret.steerRatio = 13.60 # steering ratio according to Hyundai https://www.hyundainews.com/assets/documents/original/56239-2024KonaElectricSpecs050523.pdf
       ret.tireStiffnessFactor = 0.385
     elif candidate == CAR.STARIA:
-      ret.mass = 2280. + STD_CARGO_KG  
+      ret.mass = 2280.
       ret.wheelbase = 3.275
       ret.steerRatio = 14.2
     elif candidate == CAR.CASPER:
-      ret.mass = 985. + STD_CARGO_KG
+      ret.mass = 985.
       ret.wheelbase = 2.40
       ret.steerRatio = 14.2
     elif candidate == CAR.GRANDEUR_GN7:
-      ret.mass = 1620. + STD_CARGO_KG
+      ret.mass = 1620.
       ret.wheelbase = 2.895
       ret.steerRatio = 14.2
     elif candidate == CAR.GRANDEUR_GN7_HYBRID:
-      ret.mass = 1700. + STD_CARGO_KG
+      ret.mass = 1700.
       ret.wheelbase = 2.895
       ret.steerRatio = 14.2
       
