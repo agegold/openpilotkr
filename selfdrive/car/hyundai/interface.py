@@ -258,9 +258,9 @@ class CarInterface(CarInterfaceBase):
       ret.wheelbase = 2.89
       ret.steerRatio = 13.5  # average of the platforms
       if candidate == CAR.KIA_K8_HYBRID:
-        ret.mass = 1630 + STD_CARGO_KG
+        ret.mass = 1630
       else:
-        ret.mass = 1540 + STD_CARGO_KG
+        ret.mass = 1540
 
 
     # Genesis
