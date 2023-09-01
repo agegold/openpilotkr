@@ -170,6 +170,22 @@ class CarInterface(CarInterfaceBase):
       ret.wheelbase = 2.66
       ret.steerRatio = 13.60 # steering ratio according to Hyundai https://www.hyundainews.com/assets/documents/original/56239-2024KonaElectricSpecs050523.pdf
       ret.tireStiffnessFactor = 0.385
+    elif candidate == CAR.STARIA:
+      ret.mass = 2280. + STD_CARGO_KG  
+      ret.wheelbase = 3.275
+      ret.steerRatio = 14.2
+    elif candidate == CAR.CASPER:
+      ret.mass = 985. + STD_CARGO_KG
+      ret.wheelbase = 2.40
+      ret.steerRatio = 14.2
+    elif candidate == CAR.GRANDEUR_GN7:
+      ret.mass = 1620. + STD_CARGO_KG
+      ret.wheelbase = 2.895
+      ret.steerRatio = 14.2
+    elif candidate == CAR.GRANDEUR_GN7_HTBRID:
+      ret.mass = 1700. + STD_CARGO_KG
+      ret.wheelbase = 2.895
+      ret.steerRatio = 14.2
       
     # Kia
     elif candidate == CAR.KIA_SORENTO:
@@ -238,6 +254,14 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 2087.
       ret.wheelbase = 3.09
       ret.steerRatio = 14.23
+    elif candidate in (CAR.KIA_K8, CAR.KIA_K8_HYBRID):
+      ret.wheelbase = 2.89
+      ret.steerRatio = 13.5  # average of the platforms
+      if candidate == CAR.CAR.KIA_K8_HYBRID:
+        ret.mass = 1630 + STD_CARGO_KG
+      else:
+        ret.mass = 1540 + STD_CARGO_KG
+
 
     # Genesis
     elif candidate == CAR.GENESIS_GV60_EV_1ST_GEN:
@@ -270,6 +294,11 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 2258.
       ret.wheelbase = 2.95
       ret.steerRatio = 14.14
+    elif candidate == CAR.GENESIS_EGV70:
+      ret.mass = 2230. + STD_CARGO_KG
+      ret.wheelbase = 2.87
+      ret.steerRatio = 14.6
+
     else:
       # genesis
       if candidate == CAR.GENESIS_DH:
