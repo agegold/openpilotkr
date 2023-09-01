@@ -182,7 +182,7 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 1620. + STD_CARGO_KG
       ret.wheelbase = 2.895
       ret.steerRatio = 14.2
-    elif candidate == CAR.GRANDEUR_GN7_HTBRID:
+    elif candidate == CAR.GRANDEUR_GN7_HYBRID:
       ret.mass = 1700. + STD_CARGO_KG
       ret.wheelbase = 2.895
       ret.steerRatio = 14.2
