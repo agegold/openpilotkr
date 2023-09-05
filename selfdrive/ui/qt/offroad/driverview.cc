@@ -1,5 +1,6 @@
 #include "selfdrive/ui/qt/offroad/driverview.h"
 
+#include <algorithm>
 #include <QPainter>
 
 #include "selfdrive/ui/qt/qt_window.h"
@@ -19,6 +20,15 @@ DriverViewWindow::DriverViewWindow(QWidget* parent) : QWidget(parent) {
   connect(cameraView, &CameraWidget::vipcThreadFrameReceived, scene, &DriverViewScene::frameUpdated);
   layout->addWidget(scene);
   layout->setCurrentWidget(scene);
+
+  QObject::connect(device(), &Device::interactiveTimeout, this, &DriverViewWindow::closeView);
+}
+
+void DriverViewWindow::closeView() {
+  if (isVisible()) {
+    cameraView->stopVipcThread();
+    emit done();
+  }
 }
 
 void DriverViewWindow::mousePressEvent(QMouseEvent* e) {
@@ -26,11 +36,10 @@ void DriverViewWindow::mousePressEvent(QMouseEvent* e) {
     uiState()->scene.rec_stat = !uiState()->scene.rec_stat;
     return;
   }
-  cameraView->stopVipcThread();
-  emit done();
+  closeView();
 }
 
-DriverViewScene::DriverViewScene(QWidget* parent) : sm({"driverStateV2"}), QWidget(parent) {
+DriverViewScene::DriverViewScene(QWidget* parent) : QWidget(parent) {
   face_img = loadPixmap("../assets/img_driver_face_static.png", {FACE_IMG_SIZE, FACE_IMG_SIZE});
 
   // neokii screen recorder, thx for sharing:)
@@ -54,12 +63,10 @@ void DriverViewScene::showEvent(QShowEvent* event) {
 
 void DriverViewScene::hideEvent(QHideEvent* event) {
   params.putBool("IsDriverViewEnabled", false);
-  device()->resetInteractiveTimeout();
 }
 
 void DriverViewScene::frameUpdated() {
   frame_updated = true;
-  sm.update(0);
   update();
 }
 
@@ -75,6 +82,7 @@ void DriverViewScene::paintEvent(QPaintEvent* event) {
     return;
   }
 
+  const auto &sm = *(uiState()->sm);
   cereal::DriverStateV2::Reader driver_state = sm["driverStateV2"].getDriverStateV2();
   cereal::DriverStateV2::DriverData::Reader driver_data;
 

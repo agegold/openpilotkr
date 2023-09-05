@@ -134,6 +134,7 @@ class Controls:
     self.cruise_road_limit_spd_switch_prev = 0
     
     self.long_alt = int(self.params.get("OPKRLongAlt", encoding="utf8"))
+    self.exp_long_enabled = self.params.get_bool("ExperimentalLongitudinalEnabled")
 
     # detect sound card presence and ensure successful init
     sounds_available = HARDWARE.get_sound_card_online()
@@ -238,7 +239,6 @@ class Controls:
     self.prof = Profiler(False)  # off by default
 
     self.hkg_stock_lkas = True
-    self.hkg_stock_lkas_timer = 0
 
     self.mpc_frame = 0
     self.mpc_frame_sr = 0
@@ -857,7 +857,7 @@ class Controls:
       CC.cruiseControl.resume = self.enabled and CS.cruiseState.standstill and speeds[-1] > 0.1
 
     hudControl = CC.hudControl
-    hudControl.setSpeed = float(self.v_cruise_helper.v_cruise_cluster_kph * CV.KPH_TO_MS)
+    hudControl.setSpeed = float(self.v_cruise_helper.v_cruise_kph * (CV.KPH_TO_MS if self.is_metric else CV.MPH_TO_MS))
     hudControl.speedVisible = self.enabled
     hudControl.lanesVisible = self.enabled
     hudControl.leadVisible = self.sm['longitudinalPlan'].hasLead
@@ -913,18 +913,11 @@ class Controls:
     if current_alert:
       hudControl.visualAlert = current_alert.visual_alert
 
-    if self.stock_lkas_on_disengaged_status and self.CP.carName == "hyundai":
+    if self.stock_lkas_on_disengaged_status and self.CP.carName == "hyundai" and not self.exp_long_enabled:
       if self.enabled:
         self.hkg_stock_lkas = False
-        self.hkg_stock_lkas_timer = 0
       elif not self.enabled and not self.hkg_stock_lkas:
-        self.hkg_stock_lkas_timer += 1
-        if self.hkg_stock_lkas_timer > 300:
-          self.hkg_stock_lkas = True
-          self.hkg_stock_lkas_timer = 0
-        elif CS.gearShifter != GearShifter.drive and self.hkg_stock_lkas_timer > 150:
-          self.hkg_stock_lkas = True
-          self.hkg_stock_lkas_timer = 0
+        self.hkg_stock_lkas = True
       if not self.hkg_stock_lkas:
         # send car controls over can
         now_nanos = self.can_log_mono_time if REPLAY else int(time.monotonic() * 1e9)

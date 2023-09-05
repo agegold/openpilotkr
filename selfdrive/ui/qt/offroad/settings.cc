@@ -3,6 +3,8 @@
 #include <cassert>
 #include <cmath>
 #include <string>
+#include <tuple>
+#include <vector>
 
 #include <QDebug>
 #include <QProcess> // opkr
@@ -10,7 +12,7 @@
 #include <QTimer> // opkr
 #include <QFileInfo> // opkr
 
-#include "selfdrive/ui/qt/offroad/networking.h"
+#include "selfdrive/ui/qt/network/networking.h"
 
 #include "common/params.h"
 #include "common/watchdog.h"
@@ -43,7 +45,8 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
       tr("openpilot Longitudinal Control (Alpha)"),
       QString("<b>%1</b><br><br>%2")
       .arg(tr("WARNING: openpilot longitudinal control is in alpha for this car and will disable Automatic Emergency Braking (AEB)."))
-      .arg(tr("On this car, openpilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.")),
+      .arg(tr("On this car, openpilot defaults to the car's built-in ACC instead of openpilot's longitudinal control. "
+              "Enable this to switch to openpilot longitudinal control. Enabling Experimental mode is recommended when enabling openpilot longitudinal control alpha.")),
       "../assets/offroad/icon_speed_limit.png",
     },
     {
@@ -106,7 +109,8 @@ TogglesPanel::TogglesPanel(SettingsWindow *parent) : ListWidget(parent) {
 
   std::vector<QString> longi_button_texts{tr("Aggressive"), tr("Standard"), tr("Relaxed")};
   long_personality_setting = new ButtonParamControl("LongitudinalPersonality", tr("Driving Personality"),
-                                          tr("Standard is recommended. In aggressive mode, openpilot will follow lead cars closer and be more aggressive with the gas and brake. In relaxed mode openpilot will stay further away from lead cars."),
+                                          tr("Standard is recommended. In aggressive mode, openpilot will follow lead cars closer and be more aggressive with the gas and brake. "
+                                             "In relaxed mode openpilot will stay further away from lead cars."),
                                           "../assets/offroad/icon_speed_limit.png",
                                           longi_button_texts);
   for (auto &[param, title, desc, icon] : toggle_defs) {
@@ -431,7 +435,7 @@ UIPanel::UIPanel(QWidget *parent) : QFrame(parent) {
   layout->addWidget(recorddelbtn);
   layout->addWidget(horizontal_line());
   layout->addWidget(new EnableLogger());
-  layout->addWidget(new EnableUploader());
+  //layout->addWidget(new EnableUploader());
   const char* realdata_del = "rm -rf /data/media/0/realdata/*";
   auto realdatadelbtn = new ButtonControl(tr("Delete All Driving Logs"), tr("RUN"));
   QObject::connect(realdatadelbtn, &ButtonControl::clicked, [=]() {
@@ -450,6 +454,7 @@ UIPanel::UIPanel(QWidget *parent) : QFrame(parent) {
   //layout->addWidget(new OPKRServerSelect());
   //layout->addWidget(new OPKRServerAPI());
   layout->addWidget(new OPKRMapboxStyle());
+  layout->addWidget(horizontal_line());
   layout->addWidget(new OPKRBottomTextView());
   layout->addWidget(new RPMAnimatedToggle());
   layout->addWidget(new RPMAnimatedMaxValue());
@@ -712,6 +717,10 @@ SettingsWindow::SettingsWindow(QWidget *parent) : QFrame(parent) {
     }
     SettingsWindow {
       background-color: black;
+    }
+    QStackedWidget, ScrollView {
+      background-color: #292929;
+      border-radius: 30px;
     }
   )");
 }

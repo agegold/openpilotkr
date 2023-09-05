@@ -1,10 +1,7 @@
 #pragma once
 
-#include <memory>
-
 #include <QStackedLayout>
 
-#include "common/util.h"
 #include "selfdrive/ui/qt/widgets/cameraview.h"
 #include <QTimer>
 #include "selfdrive/ui/qt/screenrecorder/screenrecorder.h"
@@ -25,7 +22,6 @@ protected:
 
 private:
   Params params;
-  SubMaster sm;
   QPixmap face_img;
   bool is_rhd = false;
   bool frame_updated = false;
@@ -46,8 +42,8 @@ signals:
 
 protected:
   void mousePressEvent(QMouseEvent* e) override;
+  void closeView();
 
-private:
   CameraWidget *cameraView;
   DriverViewScene *scene;
   QStackedLayout *layout;

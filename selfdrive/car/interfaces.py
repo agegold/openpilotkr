@@ -1,13 +1,14 @@
 import yaml
 import os
 import time
+import numpy as np
 from abc import abstractmethod, ABC
 from typing import Any, Dict, Optional, Tuple, List, Callable
 
 from cereal import car
 from openpilot.common.basedir import BASEDIR
 from openpilot.common.conversions import Conversions as CV
-from openpilot.common.kalman.simple_kalman import KF1D
+from openpilot.common.kalman.simple_kalman import KF1D, get_kalman_gain
 from openpilot.common.numpy_fast import clip
 from openpilot.common.realtime import DT_CTRL
 from openpilot.selfdrive.car import apply_hysteresis, gen_empty_fingerprint, scale_rot_inertia, scale_tire_stiffness, STD_CARGO_KG
@@ -32,6 +33,7 @@ TORQUE_PARAMS_PATH = os.path.join(BASEDIR, 'selfdrive/car/torque_data/params.yam
 TORQUE_OVERRIDE_PATH = os.path.join(BASEDIR, 'selfdrive/car/torque_data/override.yaml')
 TORQUE_SUBSTITUTE_PATH = os.path.join(BASEDIR, 'selfdrive/car/torque_data/substitute.yaml')
 
+UseLiveTorque = Params().get_bool("OpkrLiveTorque") if Params().get_bool("OpkrLiveTorque") is not None else False
 
 def get_torque_params(candidate):
   with open(TORQUE_SUBSTITUTE_PATH) as f:
@@ -92,6 +94,8 @@ class CarInterfaceBase(ABC):
     self.ufc_mode = Params().get_bool("UFCModeEnabled")
     self.steer_warning_fix_enabled = Params().get_bool("SteerWarningFix")
     self.user_specific_feature = int(Params().get("UserSpecificFeature", encoding="utf8"))
+    self.long_alt = int(Params().get("OPKRLongAlt", encoding="utf8"))
+    self.exp_long = self.CP.sccBus <= 0 and self.CP.openpilotLongitudinalControl and self.long_alt not in (1, 2)
 
   @staticmethod
   def get_pid_accel_limits(CP, current_speed, cruise_speed):
@@ -204,14 +208,31 @@ class CarInterfaceBase(ABC):
     tune.init('torque')
 
     if params is not None:
-      tune.torque.useSteeringAngle = use_steering_angle
-      tune.torque.kp = 1.0
-      tune.torque.kf = 1.0
-      tune.torque.ki = 0.1
-      tune.torque.friction = params['FRICTION']
-      tune.torque.latAccelFactor = params['LAT_ACCEL_FACTOR']
-      tune.torque.latAccelOffset = 0.0
-      tune.torque.steeringAngleDeadzoneDeg = steering_angle_deadzone_deg
+      if UseLiveTorque:
+        tune.torque.useSteeringAngle = use_steering_angle
+        tune.torque.kp = 1.0
+        tune.torque.kf = 1.0
+        tune.torque.ki = 0.1
+        tune.torque.friction = params['FRICTION']
+        tune.torque.latAccelFactor = params['LAT_ACCEL_FACTOR']
+        tune.torque.latAccelOffset = 0.0
+        tune.torque.steeringAngleDeadzoneDeg = steering_angle_deadzone_deg
+      else:
+        TorqueKp = float(Decimal(Params().get("TorqueKp", encoding="utf8")) * Decimal('0.1'))
+        TorqueKf = float(Decimal(Params().get("TorqueKf", encoding="utf8")) * Decimal('0.1'))
+        TorqueKi = float(Decimal(Params().get("TorqueKi", encoding="utf8")) * Decimal('0.1'))
+        TorqueFriction = float(Decimal(Params().get("TorqueFriction", encoding="utf8")) * Decimal('0.01'))
+        TorqueUseAngle = Params().get_bool('TorqueUseAngle')
+        TorqueLatAccelFactor = float(Decimal(Params().get("TorqueMaxLatAccel", encoding="utf8")) * Decimal('0.1'))
+        TorqueAngDeadZone = float(Decimal(Params().get("TorqueAngDeadZone", encoding="utf8")) * Decimal('0.1'))
+        tune.torque.useSteeringAngle = TorqueUseAngle
+        tune.torque.kp = TorqueKp
+        tune.torque.kf = TorqueKf
+        tune.torque.ki = TorqueKi
+        tune.torque.friction = TorqueFriction
+        tune.torque.latAccelFactor = TorqueLatAccelFactor
+        tune.torque.latAccelOffset = 0.0
+        tune.torque.steeringAngleDeadzoneDeg = TorqueAngDeadZone        
     else:
       TorqueKp = float(Decimal(Params().get("TorqueKp", encoding="utf8")) * Decimal('0.1'))
       TorqueKf = float(Decimal(Params().get("TorqueKf", encoding="utf8")) * Decimal('0.1'))
@@ -220,7 +241,6 @@ class CarInterfaceBase(ABC):
       TorqueUseAngle = Params().get_bool('TorqueUseAngle')
       TorqueLatAccelFactor = float(Decimal(Params().get("TorqueMaxLatAccel", encoding="utf8")) * Decimal('0.1'))
       TorqueAngDeadZone = float(Decimal(Params().get("TorqueAngDeadZone", encoding="utf8")) * Decimal('0.1'))
-
       tune.torque.useSteeringAngle = TorqueUseAngle
       tune.torque.kp = TorqueKp
       tune.torque.kf = TorqueKf
@@ -305,7 +325,7 @@ class CarInterfaceBase(ABC):
       events.add(EventName.wrongCruiseMode)
     if cs_out.brakeHoldActive and self.CP.openpilotLongitudinalControl and not self.ufc_mode:
       events.add(EventName.brakeHold)
-    if cs_out.parkingBrake:
+    if cs_out.parkingBrake and not self.ufc_mode:
       events.add(EventName.parkBrake)
     if cs_out.accFaulted:
       events.add(EventName.accFaulted)
@@ -348,6 +368,11 @@ class CarInterfaceBase(ABC):
         events.add(EventName.pcmEnable)
       elif not cs_out.cruiseState.enabled:
         events.add(EventName.pcmDisable)
+    elif self.exp_long:
+      if cs_out.cruiseState.enabled and allow_enable:
+        events.add(EventName.buttonEnable)
+      elif not cs_out.cruiseState.enabled and allow_enable:
+        events.add(EventName.buttonCancel)
 
     return events
 
@@ -382,12 +407,13 @@ class CarStateBase(ABC):
     self.cluster_speed_hyst_gap = 0.0
     self.cluster_min_speed = 0.0  # min speed before dropping to 0
 
-    # Q = np.matrix([[0.0, 0.0], [0.0, 100.0]])
-    # R = 0.3
-    self.v_ego_kf = KF1D(x0=[[0.0], [0.0]],
-                         A=[[1.0, DT_CTRL], [0.0, 1.0]],
-                         C=[1.0, 0.0],
-                         K=[[0.17406039], [1.65925647]])
+    Q = [[0.0, 0.0], [0.0, 100.0]]
+    R = 0.3
+    A = [[1.0, DT_CTRL], [0.0, 1.0]]
+    C = [[1.0, 0.0]]
+    x0=[[0.0], [0.0]]
+    K = get_kalman_gain(DT_CTRL, np.array(A), np.array(C), np.array(Q), R)
+    self.v_ego_kf = KF1D(x0=x0, A=A, C=C[0], K=K)
 
   def update_speed_kf(self, v_ego_raw):
     if abs(v_ego_raw - self.v_ego_kf.x[0][0]) > 2.0:  # Prevent large accelerations when car starts at non zero speed

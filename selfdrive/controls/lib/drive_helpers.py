@@ -10,13 +10,15 @@ from openpilot.selfdrive.modeld.constants import T_IDXS
 from openpilot.selfdrive.car.hyundai.values import Buttons
 from openpilot.common.params import Params
 
+IS_METRIC = Params().get_bool("IsMetric") if Params().get_bool("IsMetric") is not None else False
+LONG_ENABLED = Params().get_bool("ExperimentalLongitudinalEnabled") if Params().get_bool("ExperimentalLongitudinalEnabled") is not None else False
 # WARNING: this value was determined based on the model's training distribution,
 #          model predictions above this speed can be unpredictable
 # V_CRUISE's are in kph
-V_CRUISE_MIN = 30
+V_CRUISE_MIN = (10 if IS_METRIC else 5) if LONG_ENABLED else (30 if IS_METRIC else 20)
 V_CRUISE_MAX = 160
 V_CRUISE_UNSET = 255
-V_CRUISE_INITIAL = 30
+V_CRUISE_INITIAL = V_CRUISE_MIN = (10 if IS_METRIC else 5) if LONG_ENABLED else (30 if IS_METRIC else 20)
 V_CRUISE_INITIAL_EXPERIMENTAL_MODE = 105
 IMPERIAL_INCREMENT = 1.6  # should be CV.MPH_TO_KPH, but this causes rounding errors
 
@@ -91,16 +93,20 @@ class VCruiseHelper:
     self.v_cruise_kph_last = self.v_cruise_kph
     self.sm.update(0)
     if CS.cruiseState.available:
+      m_unit = CV.MS_TO_KPH if self.is_kph else CV.MS_TO_MPH
       if not self.CP.pcmCruise:
-        # if stock cruise is completely disabled, then we can use our own set speed logic
-        self._update_v_cruise_non_pcm(CS, enabled, is_metric)
-        self.v_cruise_cluster_kph = self.v_cruise_kph
-        self.update_button_timers(CS, enabled)
+        if self.CP.carName == "hyundai":
+          self.v_cruise_kph = int(round(CS.cruiseState.speed * m_unit))
+          self.v_cruise_cluster_kph = int(round(CS.cruiseState.speedCluster * m_unit))
+        else:
+          # if stock cruise is completely disabled, then we can use our own set speed logic
+          self._update_v_cruise_non_pcm(CS, enabled, is_metric)
+          self.v_cruise_cluster_kph = self.v_cruise_kph
+          self.update_button_timers(CS, enabled)
       else:
-        m_unit = CV.MS_TO_KPH if self.is_kph else CV.MS_TO_MPH
         if not self.CP.carName == "hyundai":
-          self.v_cruise_kph = CS.cruiseState.speed * m_unit
-          self.v_cruise_cluster_kph = CS.cruiseState.speedCluster * m_unit
+          self.v_cruise_kph = int(round(CS.cruiseState.speed * m_unit))
+          self.v_cruise_cluster_kph = int(round(CS.cruiseState.speedCluster * m_unit))
         else:
           t_speed = 30 if self.is_kph else 20
           if self.cruise_road_limit_spd_enabled and not self.cruise_road_limit_spd_switch and self.cruise_road_limit_spd_switch_prev != 0 and self.cruise_road_limit_spd_switch_prev != self.sm['liveENaviData'].roadLimitSpeed:
