@@ -8,7 +8,7 @@ from openpilot.selfdrive.car.hyundai.values import HyundaiFlags, CAR, DBC, CANFD
                                          EV_CAR, HYBRID_CAR, LEGACY_SAFETY_MODE_CAR, UNSUPPORTED_LONGITUDINAL_CAR, \
                                          Buttons, LEGACY_SAFETY_MODE_CAR_ALT
 from openpilot.selfdrive.car.hyundai.radar_interface import RADAR_START_ADDR
-from openpilot.selfdrive.car import create_button_event, get_safety_config
+from openpilot.selfdrive.car import create_button_events, get_safety_config
 from openpilot.selfdrive.car.interfaces import CarInterfaceBase
 from openpilot.selfdrive.car.disable_ecu import disable_ecu
 
@@ -41,6 +41,8 @@ class CarInterface(CarInterfaceBase):
       # detect HDA2 with ADAS Driving ECU
       if hda2:
         ret.flags |= HyundaiFlags.CANFD_HDA2.value
+        if 0x110 in fingerprint[CAN.CAM]:
+          ret.flags |= HyundaiFlags.CANFD_HDA2_ALT_STEERING.value
       else:
         # non-HDA2
         if 0x1cf not in fingerprint[CAN.ECAN]:
@@ -135,10 +137,10 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 2060.
       ret.wheelbase = 3.01
       ret.steerRatio = 16.5
-    elif candidate in (CAR.KONA, CAR.KONA_EV, CAR.KONA_HEV, CAR.KONA_EV_2022):
-      ret.mass = {CAR.KONA_EV: 1685., CAR.KONA_HEV: 1425., CAR.KONA_EV_2022: 1743.}.get(candidate, 1275.)
-      ret.wheelbase = 2.6
-      ret.steerRatio = 13.42  # Spec
+    elif candidate in (CAR.KONA, CAR.KONA_EV, CAR.KONA_HEV, CAR.KONA_EV_2022, CAR.KONA_EV_2ND_GEN):
+      ret.mass = {CAR.KONA_EV: 1685., CAR.KONA_HEV: 1425., CAR.KONA_EV_2022: 1743., CAR.KONA_EV_2ND_GEN: 1740.}.get(candidate, 1275.)
+      ret.wheelbase = {CAR.KONA_EV_2ND_GEN: 2.66, }.get(candidate, 2.6)
+      ret.steerRatio = {CAR.KONA_EV_2ND_GEN: 13.6, }.get(candidate, 13.42)  # Spec
       ret.tireStiffnessFactor = 0.385
     elif candidate in (CAR.IONIQ, CAR.IONIQ_EV_LTD, CAR.IONIQ_PHEV_2019, CAR.IONIQ_HEV_2022, CAR.IONIQ_EV_2020, CAR.IONIQ_PHEV):
       ret.mass = 1490.  # weight per hyundai site https://www.hyundaiusa.com/ioniq-electric/specifications.aspx
@@ -165,11 +167,6 @@ class CarInterface(CarInterfaceBase):
       ret.wheelbase = 3.000
       # steering ratio according to Hyundai News https://www.hyundainews.com/assets/documents/original/48035-2022SantaCruzProductGuideSpecsv2081521.pdf
       ret.steerRatio = 14.2
-    elif candidate == CAR.KONA_EV_2ND_GEN:
-      ret.mass = 1740.
-      ret.wheelbase = 2.66
-      ret.steerRatio = 13.60 # steering ratio according to Hyundai https://www.hyundainews.com/assets/documents/original/56239-2024KonaElectricSpecs050523.pdf
-      ret.tireStiffnessFactor = 0.385
     elif candidate == CAR.STARIA:
       ret.mass = 2280.
       ret.wheelbase = 3.275
@@ -243,11 +240,13 @@ class CarInterface(CarInterfaceBase):
       ret.mass = 1767.  # SX Prestige trim support only
       ret.wheelbase = 2.756
       ret.steerRatio = 13.6
-    elif candidate in (CAR.KIA_SORENTO_4TH_GEN, CAR.KIA_SORENTO_PHEV_4TH_GEN):
+    elif candidate in (CAR.KIA_SORENTO_4TH_GEN, CAR.KIA_SORENTO_HEV_4TH_GEN, CAR.KIA_SORENTO_PHEV_4TH_GEN):
       ret.wheelbase = 2.81
       ret.steerRatio = 13.5  # average of the platforms
       if candidate == CAR.KIA_SORENTO_4TH_GEN:
         ret.mass = 3957 * CV.LB_TO_KG
+      elif candidate == CAR.KIA_SORENTO_HEV_4TH_GEN:
+        ret.mass = 4255 * CV.LB_TO_KG
       else:
         ret.mass = 4537 * CV.LB_TO_KG
     elif candidate == CAR.KIA_CARNIVAL_4TH_GEN:
@@ -399,7 +398,7 @@ class CarInterface(CarInterfaceBase):
       ret.enableBsm = 0x58b in fingerprint[0]
       ret.mdpsBus = 1 if 593 in fingerprint[1] and 1296 not in fingerprint[1] else 0
       ret.sasBus = 1 if 688 in fingerprint[1] and 1296 not in fingerprint[1] else 0
-      ret.sccBus = 2 if int(Params().get("OPKRLongAlt", encoding="utf8")) in (1, 2) else 0
+      ret.sccBus = 2 if int(Params().get("OPKRLongAlt", encoding="utf8")) in (1, 2) and not Params().get_bool("ExperimentalLongitudinalEnabled") else 0
       #ret.sccBus = 0 if 1056 in fingerprint[0] else 1 if 1056 in fingerprint[1] and 1296 not in fingerprint[1] else 2 if 1056 in fingerprint[2] else -1
       ret.fcaBus = 0 if 909 in fingerprint[0] else 2 if 909 in fingerprint[2] else -1
       ret.bsmAvailable = True if 1419 in fingerprint[0] else False
@@ -420,12 +419,20 @@ class CarInterface(CarInterfaceBase):
 
       if ret.flags & HyundaiFlags.CANFD_HDA2:
         ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CANFD_HDA2
+        if ret.flags & HyundaiFlags.CANFD_HDA2_ALT_STEERING:
+          ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CANFD_HDA2_ALT_STEERING
       if ret.flags & HyundaiFlags.CANFD_ALT_BUTTONS:
         ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CANFD_ALT_BUTTONS
       if ret.flags & HyundaiFlags.CANFD_CAMERA_SCC:
         ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_CAMERA_SCC
     else:
-      if candidate in LEGACY_SAFETY_MODE_CAR_ALT or (candidate in LEGACY_SAFETY_MODE_CAR and Params().get_bool("UFCModeEnabled")):
+      if Params().get_bool("ExperimentalLongitudinalEnabled"):
+        if candidate in LEGACY_SAFETY_MODE_CAR:
+          # these cars require a special panda safety mode due to missing counters and checksums in the messages
+          ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundaiLegacy)]
+        else:
+          ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundai, 0)]
+      elif candidate in LEGACY_SAFETY_MODE_CAR_ALT or (candidate in LEGACY_SAFETY_MODE_CAR and Params().get_bool("UFCModeEnabled")):
         ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundaiCommunity1Legacy)]
       elif Params().get_bool("UFCModeEnabled"):
         ret.safetyConfigs = [get_safety_config(car.CarParams.SafetyModel.hyundaiCommunity1)]
@@ -452,7 +459,7 @@ class CarInterface(CarInterfaceBase):
       else:
         ret.pcmCruise = not ret.openpilotLongitudinalControl
 
-    if ret.openpilotLongitudinalControl and int(Params().get("OPKRLongAlt", encoding="utf8")) not in (1, 2):
+    if (ret.openpilotLongitudinalControl and int(Params().get("OPKRLongAlt", encoding="utf8")) not in (1, 2)) or Params().get_bool("ExperimentalLongitudinalEnabled"):
       ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_LONG
     if candidate in HYBRID_CAR:
       ret.safetyConfigs[-1].safetyParam |= Panda.FLAG_HYUNDAI_HYBRID_GAS
@@ -483,22 +490,16 @@ class CarInterface(CarInterfaceBase):
     ret = self.CS.update(self.cp, self.cp2, self.cp_cam)
 
     # most HKG cars has no long control, it is safer and easier to engage by main on
-    if self.CC.ufc_mode_enabled:
+    if self.CC.ufc_mode_enabled and not self.CS.CP.experimentalLong:
       ret.cruiseState.enabled = ret.cruiseState.available
 
-    if (self.CS.CP.openpilotLongitudinalControl or self.CC.ufc_mode_enabled) and self.CS.cruise_buttons[-1] != self.CS.prev_cruise_buttons:
-      buttonEvents = [create_button_event(self.CS.cruise_buttons[-1], self.CS.prev_cruise_buttons, BUTTONS_DICT)]
-      # Handle CF_Clu_CruiseSwState changing buttons mid-press
-      if self.CS.cruise_buttons[-1] != 0 and self.CS.prev_cruise_buttons != 0:
-        buttonEvents.append(create_button_event(0, self.CS.prev_cruise_buttons, BUTTONS_DICT))
-
-      ret.buttonEvents = buttonEvents
+    if self.CS.CP.openpilotLongitudinalControl or self.CC.ufc_mode_enabled:
+      ret.buttonEvents = create_button_events(self.CS.cruise_buttons[-1], self.CS.prev_cruise_buttons, BUTTONS_DICT)
 
     # On some newer model years, the CANCEL button acts as a pause/resume button based on the PCM state
     # To avoid re-engaging when openpilot cancels, check user engagement intention via buttons
     # Main button also can trigger an engagement on these cars
-    allow_enable = any(btn in ENABLE_BUTTONS for btn in self.CS.cruise_buttons) or any(self.CS.main_buttons) \
-                   or self.CP.carFingerprint in CANFD_CAR
+    allow_enable = any(btn in ENABLE_BUTTONS for btn in self.CS.cruise_buttons) or any(self.CS.main_buttons)
     events = self.create_common_events(ret, pcm_enable=self.CS.CP.pcmCruise, allow_enable=allow_enable)
 
     # low speed steer alert hysteresis logic (only for cars with steer cut off above 10 m/s)
