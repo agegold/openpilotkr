@@ -138,7 +138,9 @@ class CAR:
   K5_JF = "KIA K5 (JF)"
   K5_HEV_JF = "KIA K5 HYBRID (JF)"
   K7_YG = "KIA K7 (YG)"
+  K7_YG_2020 = "KIA K7 (YG) 2020"
   K7_HEV_YG = "KIA K7 HYBRID (YG)"
+  K7_HEV_YG_2020 = "KIA K7 HYBRID (YG) 2020"
   SOUL_EV_SK3 = "KIA SOUL EV (SK3)"
   MOHAVE_HM = "KIA MOHAVE (HM)"
   KIA_K8 = "KIA K8"
@@ -420,6 +422,12 @@ FINGERPRINTS = {
   }],  
   CAR.GRANDEUR_GN7_HYBRID: [{
   }],  
+  CAR.K7_YG_2020: [{
+    67: 8, 68: 8, 127: 8, 304: 8, 320: 8, 339: 8, 356: 4, 513: 8, 514: 8, 515: 8, 516: 8, 517: 8, 522: 8, 523: 8, 524: 8, 525: 8, 544: 8, 568: 8, 569: 8, 570: 8, 571: 8, 572: 8, 573: 8, 574: 8, 575: 8, 576: 8, 577: 8, 578: 8, 579: 8, 580: 8, 581: 8, 582: 8, 583: 8, 584: 8, 585: 8, 586: 8, 587: 8, 588: 8, 589: 8, 590: 8, 591: 8, 592: 8, 593: 8, 594: 8, 595: 8, 596: 8, 597: 8, 602: 8, 603: 8, 604: 8, 605: 8, 606: 8, 608: 8, 614: 8, 615: 8, 616: 8, 617: 8, 618: 8, 621: 8, 622: 8, 623: 8, 688: 5, 809: 8, 832: 8, 854: 8, 865: 8, 870: 7, 871: 8, 872: 8, 897: 8, 902: 8, 903: 8, 905: 8, 909: 8, 913: 8, 916: 8, 1040: 8, 1042: 8, 1056: 8, 1057: 8, 1078: 4, 1094: 8, 1096: 8, 1107: 5, 1108: 8, 1136: 8, 1151: 8, 1155: 8, 1156: 8, 1157: 4, 1162: 8, 1164: 8, 1168: 7, 1170: 8, 1173: 8, 1180: 8, 1186: 2, 1191: 2, 1210: 8, 1227: 8, 1265: 4, 1268: 8, 1280: 1, 1287: 4, 1290: 8, 1292: 8, 1294: 8, 1312: 8, 1322: 8, 1342: 6, 1343: 8, 1345: 8, 1348: 8, 1363: 8, 1369: 8, 1371: 8, 1378: 8, 1379: 8, 1384: 8, 1407: 8, 1419: 8, 1427: 6, 1456: 4, 1470: 8, 1680: 8, 1681: 8, 1988: 8, 1996: 8, 2000: 8, 2004: 8, 2008: 8, 2012: 8
+  }],
+  CAR.K7_HEV_YG_2020: [{
+  }],
+
 }
 
 
@@ -2034,7 +2042,7 @@ CHECKSUM = {
 CAN_GEARS = {
   # which message has the gear
   "use_cluster_gears": {CAR.ELANTRA, CAR.KONA,
-                        CAR.AVANTE_AD, CAR.I30_PD, CAR.K7_YG, CAR.GRANDEUR_IG, CAR.GRANDEUR_FL_IG},
+                        CAR.AVANTE_AD, CAR.I30_PD, CAR.K7_YG, CAR.GRANDEUR_IG, CAR.GRANDEUR_FL_IG, CAR.K7_YG_2020},
   "use_tcu_gears": {CAR.KIA_OPTIMA_G4, CAR.KIA_OPTIMA_G4_FL, CAR.SONATA_LF, CAR.VELOSTER, CAR.TUCSON,
                     CAR.K5_JF, CAR.KIA_STINGER, CAR.KIA_STINGER_2022},
   "use_elect_gears": {CAR.KIA_NIRO_EV, CAR.KIA_NIRO_PHEV, CAR.KIA_NIRO_HEV_2021, CAR.KIA_OPTIMA_H, CAR.IONIQ_EV_LTD,
@@ -2064,7 +2072,7 @@ HYBRID_CAR = {CAR.IONIQ_PHEV, CAR.ELANTRA_HEV_2021, CAR.KIA_NIRO_PHEV, CAR.KIA_N
               CAR.IONIQ_HEV_2022, CAR.SANTA_FE_HEV_2022, CAR.SANTA_FE_PHEV_2022, CAR.IONIQ_PHEV_2019, CAR.TUCSON_HYBRID_4TH_GEN,
               CAR.KIA_SPORTAGE_HYBRID_5TH_GEN, CAR.KIA_SORENTO_PHEV_4TH_GEN, CAR.KIA_K5_HEV_2020, CAR.KIA_NIRO_HEV_2ND_GEN,
               CAR.KIA_SORENTO_HEV_4TH_GEN, CAR.K5_HEV_JF, CAR.K7_HEV_YG, CAR.GRANDEUR_HEV_IG, CAR.GRANDEUR_HEV_FL_IG, CAR.AVANTE_HEV_CN7, CAR.KIA_OPTIMA_H,CAR.KIA_K8_HEV_1ST_GEN,
-              CAR.GRANDEUR_GN7_HYBRID}  # these cars use a different gas signal
+              CAR.GRANDEUR_GN7_HYBRID, CAR.K7_HEV_YG, CAR.K7_HEV_YG_2020}  # these cars use a different gas signal
 EV_CAR = {CAR.IONIQ_EV_2020, CAR.IONIQ_EV_LTD, CAR.KONA_EV, CAR.KIA_NIRO_EV, CAR.KIA_NIRO_EV_2ND_GEN, CAR.KONA_EV_2022,
           CAR.KIA_EV6, CAR.IONIQ_5, CAR.IONIQ_6, CAR.GENESIS_GV60_EV_1ST_GEN,
           CAR.NEXO_FE, CAR.SOUL_EV_SK3, CAR.KONA_EV_2ND_GEN,
@@ -2163,7 +2171,9 @@ DBC = {
   CAR.K5_JF: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.K5_HEV_JF: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.K7_YG: dbc_dict('hyundai_kia_generic', RadarTrack),
+  CAR.K7_YG_2020: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.K7_HEV_YG: dbc_dict('hyundai_kia_generic', RadarTrack),
+  CAR.K7_HEV_YG_2020: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.SOUL_EV_SK3: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.MOHAVE_HM: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.KONA_EV_2ND_GEN: dbc_dict('hyundai_canfd', None),
