@@ -190,7 +190,7 @@ class CarController:
     self.enable_steer_more = self.c_params.get_bool("AvoidLKASFaultBeyond")
     self.no_mdps_mods = self.c_params.get_bool("NoSmartMDPS")
 
-    #self.user_specific_feature = int(self.c_params.get("UserSpecificFeature", encoding="utf8"))
+    self.user_specific_feature = int(self.c_params.get("UserSpecificFeature", encoding="utf8"))
 
     self.gap_by_spd_on = self.c_params.get_bool("CruiseGapBySpdOn")
     self.gap_by_spd_spd = list(map(int, Params().get("CruiseGapBySpdSpd", encoding="utf8").split(',')))
@@ -208,7 +208,6 @@ class CarController:
     self.gap_by_spd_on_sw_cnt2 = 0
 
     self.prev_cruiseButton = 0
-    self.gapsettingdance = 4
     self.lead_visible = False
     self.lead_debounce = 0
     self.radarDisableOverlapTimer = 0
@@ -246,7 +245,9 @@ class CarController:
     self.experimental_long_enabled = self.c_params.get_bool("ExperimentalLongitudinalEnabled")
     self.experimental_mode = self.c_params.get_bool("ExperimentalMode")
     self.live_torque_params = self.c_params.get_bool("OpkrLiveTorque")
-    
+    self.gapsettingdance = int(self.c_params.get("OpkrCruiseGapSet", encoding="utf8"))
+    self.prev_gapButton = 0
+
     self.opkr_long_alt = True if int(self.c_params.get("OPKRLongAlt", encoding="utf8")) in (1, 2) else False
 
     self.btnsignal = 0
@@ -332,7 +333,7 @@ class CarController:
     if self.CP.smoothSteer.method == 1:
       new_steer = int(round(actuators.steer * self.params.STEER_MAX))
       new_steer = self.smooth_steer( new_steer, CS )
-    elif 0 <= self.driver_steering_torque_above_timer < 150:
+    elif 0 <= self.driver_steering_torque_above_timer < 150 and not self.user_specific_feature == 60:
       new_steer = int(round(actuators.steer * self.params.STEER_MAX * (self.driver_steering_torque_above_timer / 150)))
     else:
       new_steer = int(round(actuators.steer * self.params.STEER_MAX))
@@ -346,12 +347,12 @@ class CarController:
       lat_active = CC.latActive
     # disable when temp fault is active, or below LKA minimum speed
     elif self.opkr_maxanglelimit == 90:
-      lat_active = CC.latActive and abs(CS.out.steeringAngleDeg) < self.opkr_maxanglelimit and CS.out.gearShifter == GearShifter.drive
+      lat_active = CC.latActive and abs(CS.out.steeringAngleDeg) < self.opkr_maxanglelimit and (CS.out.gearShifter == GearShifter.drive or self.user_specific_feature == 11)
     elif self.opkr_maxanglelimit > 90:
       str_angle_limit = interp(CS.out.vEgo * CV.MS_TO_KPH, [0, 20], [self.opkr_maxanglelimit+60, self.opkr_maxanglelimit])
-      lat_active = CC.latActive and abs(CS.out.steeringAngleDeg) < str_angle_limit and CS.out.gearShifter == GearShifter.drive
+      lat_active = CC.latActive and abs(CS.out.steeringAngleDeg) < str_angle_limit and (CS.out.gearShifter == GearShifter.drive or self.user_specific_feature == 11)
     else:
-      lat_active = CC.latActive and CS.out.gearShifter == GearShifter.drive
+      lat_active = CC.latActive and (CS.out.gearShifter == GearShifter.drive or self.user_specific_feature == 11)
 
     if (( CS.out.leftBlinker and not CS.out.rightBlinker) or ( CS.out.rightBlinker and not CS.out.leftBlinker)) and CS.out.vEgo < LANE_CHANGE_SPEED_MIN and self.opkr_turnsteeringdisable:
       self.lanechange_manual_timer = 50
@@ -476,7 +477,7 @@ class CarController:
 
       clu11_speed = CS.clu11["CF_Clu_Vanz"]
       enabled_speed = 38 if CS.is_set_speed_in_mph else 60
-      if clu11_speed > enabled_speed or not lat_active or CS.out.gearShifter != GearShifter.drive:
+      if clu11_speed > enabled_speed or not lat_active:
         enabled_speed = clu11_speed
 
       if CS.cruise_active: # to toggle lkas, hold gap button for 1 sec
@@ -880,7 +881,7 @@ class CarController:
               self.e2e_standstill_stat = False
               self.e2e_standstill_timer = 0
               self.e2e_standstill_timer_buf = 0
-            elif self.e2e_standstill_stat and self.sm['longitudinalPlan'].e2eX[12] > 30 and CS.clu_Vanz == 0:
+            elif self.e2e_standstill_stat and self.sm['longitudinalPlan'].e2eX[12] > 50 and CS.clu_Vanz == 0:
               self.e2e_standstill = True
               self.e2e_standstill_stat = False
               self.e2e_standstill_timer = 0
@@ -984,13 +985,21 @@ class CarController:
       # if not self.CP.openpilotLongitudinalControl:
       #   can_sends.extend(self.create_button_messages(CC, CS, use_clu11=True))
 
+      if self.CP.openpilotLongitudinalControl and self.experimental_long_enabled:
+        if self.prev_gapButton != CS.cruise_buttons[-1]:  # gap change.
+          if CS.cruise_buttons[-1] == 3:
+            self.gapsettingdance -= 1
+          if self.gapsettingdance < 1:
+            self.gapsettingdance = 4
+          self.prev_gapButton = CS.cruise_buttons[-1]
+
       if self.frame % 2 == 0 and self.CP.openpilotLongitudinalControl and self.experimental_long_enabled:
         # TODO: unclear if this is needed
         jerk = 3.0 if actuators.longControlState == LongCtrlState.pid else 1.0
         use_fca = self.CP.flags & HyundaiFlags.USE_FCA.value
         can_sends.extend(hyundaican.create_acc_commands(self.packer, CC.enabled, accel, jerk, int(self.frame / 2),
                                                       hud_control.leadVisible, set_speed_in_units, stopping,
-                                                      CC.cruiseControl.override, use_fca))
+                                                      CC.cruiseControl.override, use_fca, self.gapsettingdance))
       # 20 Hz LFA MFA message
       if self.frame % 5 == 0 and self.CP.flags & HyundaiFlags.SEND_LFA.value:
         can_sends.append(hyundaican.create_lfahda_mfc(self.packer, CC.enabled))

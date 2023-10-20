@@ -9,7 +9,7 @@
 #include <QAbstractItemView>
 #include <QProcess>
 
-#include "selfdrive/hardware/hw.h"
+#include "system/hardware/hw.h"
 #include "selfdrive/ui/qt/widgets/controls.h"
 #include "selfdrive/ui/qt/widgets/groupWidget.h"
 #include "selfdrive/ui/ui.h"
@@ -2810,4 +2810,19 @@ private:
   void refresh5();
   void refresh6();
   void refresh7();
+};
+
+class OPKRCruiseGapSet : public AbstractControl {
+  Q_OBJECT
+
+public:
+  OPKRCruiseGapSet();
+
+private:
+  QPushButton btnplus;
+  QPushButton btnminus;
+  QLabel label;
+  Params params;
+  
+  void refresh();
 };
