@@ -304,7 +304,7 @@ class CarInterface(CarInterfaceBase):
       ret.wheelbase = 2.95
       ret.steerRatio = 14.14
     elif candidate == CAR.GENESIS_EGV70:
-      ret.mass = 2230. + STD_CARGO_KG
+      ret.mass = 2230. 
       ret.wheelbase = 2.87
       ret.steerRatio = 14.6
 
