@@ -326,6 +326,8 @@ CAR_INFO: Dict[str, Optional[Union[HyundaiCarInfo, List[HyundaiCarInfo]]]] = {
   CAR.GENESIS_GV80: HyundaiCarInfo("Genesis GV80 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_m])),
   CAR.GENESIS_DH: HyundaiCarInfo("Genesis 2015-2016", min_enable_speed=19 * CV.MPH_TO_MS, car_parts=CarParts.common([CarHarness.hyundai_j])),
   CAR.GENESIS_EQ900_HI: HyundaiCarInfo("Genesis EQ900", "All"),
+  CAR.GENESIS_EGV70: HyundaiCarInfo("Genesis EGV70 2023", "All", car_parts=CarParts.common([CarHarness.hyundai_l])),
+
 }
 
 class Buttons:
