@@ -2133,7 +2133,7 @@ CANFD_CAR = {CAR.KIA_EV6, CAR.IONIQ_5, CAR.IONIQ_6, CAR.TUCSON_4TH_GEN, CAR.TUCS
 # The radar does SCC on these cars when HDA I, rather than the camera
 CANFD_RADAR_SCC_CAR = {CAR.GENESIS_GV70_1ST_GEN, CAR.KIA_SORENTO_PHEV_4TH_GEN, CAR.KIA_SORENTO_4TH_GEN, CAR.GENESIS_GV80,
                        CAR.KIA_CARNIVAL_4TH_GEN, CAR.KIA_SORENTO_HEV_4TH_GEN, CAR.KONA_EV_2ND_GEN, CAR.IONIQ_6,
-             		   CAR.GENESIS_EGV70, CAR.GENESIS_G80_RG3, CAR.GENESIS_EG80_RG3, CAR.KIA_K8, CAR.STARIA,
+             		   CAR.GENESIS_EGV70, CAR.GENESIS_G80_RG3, CAR.GENESIS_EG80_RG3, CAR.KIA_K8, 
             		   CAR.GRANDEUR_GN7_HYBRID}
 
 # The camera does SCC on these cars, rather than the radar
@@ -2257,11 +2257,11 @@ DBC = {
   CAR.K7_YG_2020: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.K7_HEV_YG_2020: dbc_dict('hyundai_kia_generic', RadarTrack),
   CAR.GENESIS_EGV70: dbc_dict('hyundai_canfd', None),
-  CAR.GENESIS_G80_RG3: dbc_dict('hyundai_kia_generic', None),
-  CAR.GENESIS_EG80_RG3: dbc_dict('hyundai_kia_generic', None),
-  CAR.KIA_K8: dbc_dict('hyundai_kia_generic', None),
-  CAR.STARIA: dbc_dict('hyundai_kia_generic', None),
+  CAR.GENESIS_G80_RG3: dbc_dict('hyundai_canfd', None),
+  CAR.GENESIS_EG80_RG3: dbc_dict('hyundai_canfd', None),
+  CAR.KIA_K8: dbc_dict('hyundai_canfd', None),
+  CAR.STARIA: dbc_dict('hyundai_canfd', None),
   CAR.CASPER: dbc_dict('hyundai_kia_generic', None),
-  CAR.GRANDEUR_GN7: dbc_dict('hyundai_kia_generic', None),
-  CAR.GRANDEUR_GN7_HYBRID: dbc_dict('hyundai_kia_generic', None),	
+  CAR.GRANDEUR_GN7: dbc_dict('hyundai_canfd', None),
+  CAR.GRANDEUR_GN7_HYBRID: dbc_dict('hyundai_canfd', None),
 }
