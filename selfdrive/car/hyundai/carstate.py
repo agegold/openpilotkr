@@ -106,7 +106,7 @@ class CarState(CarStateBase):
   def cruise_speed_button(self):
     self.sm.update(0)
     set_speed_kph = self.cruise_set_speed_kph
-    if 0 < round(self.sm['controlsState'].vCruise) < 255:
+    if 1 < round(self.sm['controlsState'].vCruise) < 255:
       set_speed_kph = round(self.sm['controlsState'].vCruise)
 
     if self.cruise_buttons[-1]:
@@ -131,10 +131,10 @@ class CarState(CarStateBase):
           return None
         elif not self.prev_acc_set_btn: # first scc active
           self.prev_acc_set_btn = self.acc_active
-          self.cruise_set_speed_kph = self.VSetDis
+          self.cruise_set_speed_kph = max(int(round(self.clu_Vanz)), (30 if self.is_metric else 20))
           return self.cruise_set_speed_kph
 
-      if self.cruise_buttons[-1] == Buttons.RES_ACCEL and not self.cruiseState_standstill:   # up 
+      elif self.cruise_buttons[-1] == Buttons.RES_ACCEL and not self.cruiseState_standstill:   # up 
         if self.set_spd_five:
           set_speed_kph += 5
           if set_speed_kph % 5 != 0:
@@ -415,7 +415,10 @@ class CarState(CarStateBase):
     else:
       ret.gas = cp.vl["EMS12"]["PV_AV_CAN"] / 100.
       ret.gasPressed = bool(cp.vl["EMS16"]["CF_Ems_AclAct"])
-      ret.engineRpm = cp.vl["EMS_366"]["N"]
+      if self.CP.emsAvailable:
+        ret.engineRpm = cp.vl["EMS_366"]["N"]
+      else:
+        ret.engineRpm = 0
       ret.chargeMeter = 0
 
     ret.espDisabled = (cp.vl["TCS15"]["ESC_Off_Step"] != 0)
@@ -649,8 +652,11 @@ class CarState(CarStateBase):
       messages += [
         ("EMS12", 100),
         ("EMS16", 100),
-        ("EMS_366", 100),
       ]
+      if CP.emsAvailable:
+        messages += [
+          ("EMS_366", 100),
+        ]
 
     if CP.carFingerprint in (HYBRID_CAR | EV_CAR):
       messages.append(("ELECT_GEAR", 20))
